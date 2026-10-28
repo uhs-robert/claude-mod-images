@@ -216,6 +216,48 @@ describe('register', () => {
     expect(await ui.find({ type: 'Image' })).toBeDefined()
   })
 
+  test('a sent image draws under its result line, not its row, and in its group, read once', async ($, on) => {
+    engineRow(on)
+    const reads: string[] = []
+    on('fs.read', ($, e, next) => {
+      reads.push(e.path)
+      return e.path === '/tmp/shot.png' ? ({ value: { base64: TINY_PNG } } as never) : next(e)
+    })
+    const row = {
+      ...readRow('send', 'image/png', TINY_PNG),
+      tool: 'SendUserFile',
+      input: { files: ['/tmp/shot.png', '/nonexistent-claude-images/gone.png'] },
+      output: {
+        attachments: [
+          { path: '/tmp/shot.png', isImage: true, media_type: 'image/png' },
+          { path: '/nonexistent-claude-images/gone.png', isImage: true, media_type: 'image/png' },
+        ],
+      },
+    }
+
+    const result = await $.ui.mount({
+      plugin: 'images',
+      surface: 'terminal',
+      component: 'ToolResult',
+      requestId: 'send',
+      props: { tool_use_id: 'send', tool: 'SendUserFile', output: row.output, isErrored: false },
+      viewport: VIEWPORT,
+    })
+
+    expect(await (await mountRow($, row)).find({ type: 'Image' })).toBeUndefined()
+    expect((await result.findAll({ type: 'Image' })).map(found => found.props.alt)).toEqual(['shot.png · 16×12'])
+    const group = await $.ui.mount({
+      plugin: 'images',
+      surface: 'terminal',
+      component: 'ToolGroup',
+      props: { calls: [row], isActive: false, isExpanded: false },
+      viewport: VIEWPORT,
+    })
+
+    expect(await group.find({ type: 'Image' })).toBeDefined()
+    expect(reads).toEqual(['/tmp/shot.png', '/nonexistent-claude-images/gone.png'])
+  })
+
   test("an MCP tool's image blocks draw under its row, each named for the tool", async ($, on) => {
     engineRow(on)
     const image = { type: 'image', source: { type: 'base64', media_type: 'image/png', data: TINY_PNG } }

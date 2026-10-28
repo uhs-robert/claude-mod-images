@@ -7,6 +7,9 @@ A Claude Mod that draws pictures right in the terminal transcript:
 - **MCP tools.** Image blocks in an MCP tool's result (browser screenshots,
   charts) show under its row.
 - **Pastes.** Images you paste or drag into a prompt show under that prompt.
+- **Shared files.** When Claude sends you an image with `SendUserFile`, it
+  shows under the row too, read from the file as it was when the row first
+  drew (a file deleted since, or over 4 MiB, shows nothing).
 
 In a collapsed group (`Read 3 files`, `Called shots`), the pictures sit side
 by side under the line.
